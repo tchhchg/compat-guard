@@ -1,6 +1,6 @@
 {
   "name": "dsh-compat-guard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Pre-update plugin compatibility guard for DeepSeek Harness (DSH). Checks the installed plugin set against a target host version inside a disposable isolated profile and reports which plugins are risky, how risky, and what to do.",

@@ -12,6 +12,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { collect } from "./collect.js";
+import { deriveOutcomes, describeOutcomes } from "./outcomes.js";
 import { probeClient } from "./client-probe.js";
 import { checkConfigCompatibility, levelForViolation, } from "./config-schema.js";
 import { launchIsolated, persistLogs, prepareIsolation, teardown } from "./isolate.js";
@@ -329,6 +330,9 @@ function renderMarkdown(report) {
     lines.push(`- 配置 schema：${describeConfig(report.config)}`);
     lines.push(`- 宿主进程：${describeHostRunning(report)}`);
     lines.push(`- **结论：${report.overall}${report.lowConfidence ? "（可信度低）" : ""}**`, "");
+    lines.push("---", "", "## 逐项结果（独立字段）", "");
+    lines.push(...describeOutcomes(report.outcomes));
+    lines.push("");
     lines.push("---", "", "## 一句话结论", "", report.headline, "");
     if (report.runtime.skippedBundles.length > 0) {
         lines.push("## 未做运行期验证的插件", "");
@@ -690,6 +694,36 @@ export async function runCheck(options) {
             skippedBundles: configCheck?.schema.skippedBundles ?? [],
             error: configCheck?.schema.error ?? null,
         },
+        outcomes: deriveOutcomes({
+            ctx,
+            runtime,
+            client: clientOutcome,
+            config: configCheck
+                ? {
+                    attempted: true,
+                    schemaOk: configCheck.schema.ok,
+                    entryBranches: configCheck.schema.entryBranches,
+                    checked: configCheck.checked,
+                    violationCount: configCheck.violations.length,
+                    unjudgedCount: configCheck.unjudged.length,
+                    skippedBundles: configCheck.schema.skippedBundles,
+                    error: configCheck.schema.error ?? null,
+                }
+                : {
+                    attempted: false,
+                    schemaOk: false,
+                    entryBranches: 0,
+                    checked: 0,
+                    violationCount: 0,
+                    unjudgedCount: 0,
+                    skippedBundles: [],
+                    error: null,
+                },
+            findings,
+            unknowns,
+            reason: runtime.note === "" ? null : runtime.note,
+            timeoutMs: options.timeoutMs,
+        }),
         counts: {
             plugins: ctx.plugins.length,
             bundles: ctx.bundles.length,

@@ -17,6 +17,7 @@ import { runCheck } from "./check.js";
 import { detectRunningHost } from "./host-detect.js";
 import { teardown, killActiveChildren } from "./isolate.js";
 import { appendRun, detectLoop, postflight, readRuns, type LoopVerdict } from "./postflight.js";
+import { createBackup, listBackups, restoreBackup } from "./backup.js";
 import { installedDshVersion, latestDshVersion, relate } from "./update-source.js";
 import type { Verdict } from "./types.js";
 
@@ -42,6 +43,10 @@ interface HookInput {
   stateDir: string;
   /** Discover the version pair from the installed app and the npm registry. */
   auto: boolean;
+  /** Snapshot the profile's load-deciding files and exit. Needs no version pair. */
+  backup: boolean;
+  /** Restore a snapshot; `""` means "the newest one". `null` means "not requested". */
+  rollback: string | null;
 }
 
 /**
@@ -103,6 +108,18 @@ function readProfileBundles(profileDir: string): string[] {
   }
 }
 
+/**
+ * `undefined` = flag absent, `""` = present without a value, else the value.
+ * A following token that starts with `--` counts as "no value".
+ */
+function optionalFlagValue(name: string): string | undefined {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return undefined;
+  const next = process.argv[index + 1];
+  if (next === undefined || next.startsWith("--")) return "";
+  return next;
+}
+
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   if (index === -1) return undefined;
@@ -141,6 +158,8 @@ function resolveInput(): HookInput {
     failOpen: hasFlag("--fail-open") || process.env.DSH_GUARD_FAIL_OPEN === "1",
     stateDir: flag("--state") ?? process.env.DSH_GUARD_STATE ?? join(here, "state"),
     auto: hasFlag("--auto") || process.env.DSH_GUARD_AUTO === "1",
+    backup: hasFlag("--backup"),
+    rollback: optionalFlagValue("--rollback") ?? null,
   };
 }
 
@@ -182,6 +201,50 @@ async function main(): Promise<void> {
 
   // W1: post-install, pre-first-boot. Compose the freshly installed profile and
   // exit. Nothing is mounted, so this is safe to run against the new files.
+  // Backup / rollback stand alone: no version pair, no isolated host, no network.
+  if (input.backup) {
+    try {
+      const entry = createBackup(input.profileDir, input.stateDir);
+      log(`backup: ${entry.id} files=${entry.files.join(",")} bundles=${entry.bundles.length}`);
+      emit(
+        {
+          ok: true,
+          mode: "backup",
+          backupId: entry.id,
+          files: entry.files,
+          bundles: entry.bundles,
+          bundlesCount: entry.bundles.length,
+          plugins: entry.plugins.length,
+          location: input.stateDir,
+        },
+        0,
+      );
+    } catch (error) {
+      emit({ ok: false, mode: "backup", reason: error instanceof Error ? error.message : String(error) }, 2);
+    }
+  }
+
+  if (input.rollback !== null) {
+    try {
+      const result = restoreBackup(input.stateDir, input.profileDir, input.rollback);
+      log(`rollback: ${result.source.id} -> restored ${result.restored.join(",")}`);
+      emit(
+        {
+          ok: true,
+          mode: "rollback",
+          from: result.source.id,
+          restored: result.restored,
+          safetyBackupId: result.safetyBackupId,
+          bundles: result.bundles,
+          bundlesCount: result.bundles.length,
+        },
+        0,
+      );
+    } catch (error) {
+      emit({ ok: false, mode: "rollback", reason: error instanceof Error ? error.message : String(error) }, 2);
+    }
+  }
+
   // `--auto`: fill in the version pair instead of asking the user for it.
   // Runs before every other branch so the rest of the code never sees an empty pair.
   if (input.auto && (!input.fromVersion || !input.toVersion)) {

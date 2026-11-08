@@ -72,6 +72,8 @@ node dist/hook.js --auto --profile "<你的 profile 目录>"
 | `--no-client` | 跳过浏览器探测 |
 | `--no-runtime` | 只做静态检查（约 3 秒） |
 | `--fail-open` | 即使存在 BLOCKER 也只警告（退出码 2），`blockers` 仍照实输出 |
+| `--backup` | 把决定「加载哪些插件」的四个文件快照到 `state/backups/<时间戳>/`，不需要版本号 |
+| `--rollback [id]` | 恢复某个快照（省略 id 用最新一个）；恢复前自动再备份一次，回滚本身可撤销 |
 | `--timeout` | 预算毫秒数，默认 180000；超时按 fail-open 放行 |
 
 ## 配置项
@@ -93,6 +95,38 @@ node dist/hook.js --auto --profile "<你的 profile 目录>"
 - 离线时额外提供**目标版本输入框**：registry 不可达时手填版本号再检查
 
 退出码与末行 JSON 与命令行完全一致——面板只是调用了同一个 `dist/hook.js`。
+
+## 逐项结果字段（v0.2.0 起）
+
+报告不再只有一个 pass/fail。`report.json` 的 `outcomes` 把九个轴分别输出，互不掩盖：
+
+| 字段 | 取值 | 含义 |
+| --- | --- | --- |
+| `versionConstraints` | pass / blocked / unknown | 目标版本是否拒绝某个插件的版本声明 |
+| `buildScriptApproval` | not-required / declared | 插件是否声明了 `preinstall`/`install`/`postinstall`/`prepare`（宿主的批准状态在外部读不到，所以只报「声明」） |
+| `nonLayerPackages` | none / present | 没有 `dsh.bundle.patch` 的包（按普通包加载，不是 patch layer） |
+| `pluginLoad` | pass / fail / timeout / not-run | 隔离宿主能否启动 |
+| `clientRender` | pass / fail / not-run | 界面是否真的渲染出来 |
+| `configSchema` | pass / violation / unavailable / not-run | 组合配置是否被目标版本的 schema 接受 |
+| `hostThrottling` | none / observed / unknown | 本次运行是否遇到限流 / 429 / 配额 |
+| `defects` | none / present | 非阻断的缺陷（BLOCKER 以下） |
+| `timeout` | hit + budgetMs | 本次运行自己是否耗尽预算 |
+
+这些字段是**派生只读**的：`overall`、三态退出码、聚合规则都没变，所以既有的 `--from` / `--to` 结论完全一致。
+
+## 备份与回滚（v0.2.0 起）
+
+```bash
+node dist/hook.js --backup                      # 快照
+node dist/hook.js --rollback                    # 恢复最新一份
+node dist/hook.js --rollback 2026-11-08T07-57-31-310Z   # 恢复指定一份
+```
+
+- **备份位置**：`state/backups/<ISO 时间戳>/`，内含 `package.json`、`cordis.yml`、`cordis.patch.yml`、`compatibility.json`（存在才复制），外加 `manifest.json` 记录当时的 bundle 顺序与每个插件的解析版本。
+- **触发时机**：手动（也可由安装器调用）。检查流程本身不会自动写盘。
+- **恢复做什么**：只重写上面那几个配置文件，然后读回并回报新的 bundle 列表。
+- **不做什么**：不动 `node_modules`——回滚改的是「加载哪些」，「磁盘上装了哪个版本」由安装器决定。
+- **可撤销**：每次恢复动作前自动生成 `*-pre-restore` 快照，回滚错了再回滚回来即可。
 
 ## 已知限制
 

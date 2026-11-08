@@ -172,6 +172,12 @@ export interface CheckReport {
     skippedBundles: string[];
     error: string | null;
   };
+  /**
+   * Independent per-axis outcomes. Derived, read-only: it never feeds `overall` or
+   * the exit code, it only stops different failure kinds from collapsing into one
+   * pass/fail. See src/outcomes.ts.
+   */
+  outcomes: import("./outcomes.js").CheckOutcomes;
   counts: {
     plugins: number;
     bundles: number;
