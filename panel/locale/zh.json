@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "title": "兼容性预检",
+    "description": "用最新发布版本对现有插件跑一次兼容性检查，判断更新后这些插件还能不能正常工作。"
+  },
+  "panel": {
+    "run": "检查兼容性",
+    "running": "检查中…约需 20 秒",
+    "idle": "本次会话尚未运行",
+    "versions": "版本对",
+    "result": "结论",
+    "pass": "PASS — 可以更新",
+    "warn": "WARN — 可以更新，但请看报告",
+    "block": "BLOCK — 暂不要更新",
+    "unknown": "UNKNOWN — 检查未完成",
+    "counts": "检出项",
+    "risky": "有风险的插件",
+    "none": "无",
+    "openReport": "打开 report.md",
+    "noReport": "还没有报告",
+    "offline": "registry 不可达 — 请直接填写目标版本",
+    "targetPlaceholder": "例如 0.2.3-rc.1",
+    "runWithTarget": "检查这个版本",
+    "blockHint": "暂不要更新。先处理下面这些插件；本工具不会自动禁用或修改任何插件。",
+    "lastRun": "上次运行"
+  }
+}

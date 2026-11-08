@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "title": "Compatibility check",
+    "description": "Runs the plugin compatibility pre-check against the newest release and reports whether the plugins you have installed will survive the update."
+  },
+  "panel": {
+    "run": "Check compatibility",
+    "running": "Checking… this takes about 20 seconds",
+    "idle": "Not run yet in this session",
+    "versions": "Version pair",
+    "result": "Result",
+    "pass": "PASS — safe to update",
+    "warn": "WARN — update possible, but check the report",
+    "block": "BLOCK — do not update yet",
+    "unknown": "UNKNOWN — the check did not finish",
+    "counts": "Findings",
+    "risky": "Plugins at risk",
+    "none": "None",
+    "openReport": "Open report.md",
+    "noReport": "No report yet",
+    "offline": "Registry unreachable — enter the target version instead",
+    "targetPlaceholder": "e.g. 0.2.3-rc.1",
+    "runWithTarget": "Check this version",
+    "blockHint": "Do not update yet. Deal with these plugins first; nothing is disabled or changed automatically.",
+    "lastRun": "Last run"
+  }
+}

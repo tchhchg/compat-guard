@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Run artifacts: every check writes out/<timestamp>/report.{json,md}
+out/
+
+# Local verification scripts and large captured samples (not part of the plugin)
+spike/
+
+# Editor / OS noise
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+*.log

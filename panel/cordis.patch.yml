@@ -1,0 +1,5 @@
+- insert:
+    - id: compat-guard-panel
+      name: compat-guard-panel
+      config:
+        timeoutMs: 240000
